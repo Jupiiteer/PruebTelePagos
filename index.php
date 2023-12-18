@@ -5,7 +5,30 @@ require_once './Classes/Equipo.php';
 require_once './Classes/Entrenador.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if ($_POST['accion'] === 'crearEntrenador') {
+    if ($_SERVER['REQUEST_URI'] === '/insertarPokemones') {
+        $pokeUrl = "https://pokeapi.co/api/v2/pokemon?limit=15";
+        $pokeResponse = file_get_contents($pokeUrl);
+        $pokeDatos = json_decode($pokeResponse, true);
+
+        $stmt = $pdo->prepare("INSERT INTO pokemones (id, nombre, tipo) VALUES (:id, :nombre, :tipo)");
+
+        foreach ($pokeDatos['results'] as $pokemon) {
+            $pokemonDetails = file_get_contents($pokemon['url']);
+            $pokemonDetails = json_decode($pokemonDetails, true);
+
+            foreach ($pokemonDetails['types'] as $pokemonType) {
+                $nombreTipo = $pokemonType['type']['name'];
+            }
+
+            $stmt->execute([
+                ':id' => $pokemonDetails['id'],
+                ':nombre' => $pokemonDetails['name'],
+                ':tipo' => $nombreTipo
+            ]);
+        }
+    }
+
+    if ($_SERVER['REQUEST_URI'] === '/crearEntrenador') {
         $nombre = $_POST['nombre'];
 
         $entrenador = new Entrenador($pdo);
@@ -14,17 +37,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         echo json_encode(['id_entrenador' => $entrenadorId]);
         exit();
     }
-    if ($_POST['accion'] === 'crearEquipo') {
+    if ($_SERVER['REQUEST_URI'] === '/crearEquipo') {
         $entrenadorId = $_POST['id_entrenadores'];
-        $equipo = $_POST['nombre'];
+        $nombreEquipo = $_POST['nombre'];
 
         $equipo = new Equipo($pdo);
-        $equipoId = $equipo->crearEquipo($entrenadorId, $equipo);
+        $equipoId = $equipo->crearEquipo($entrenadorId, $nombreEquipo);
 
         echo json_encode(['id_equipo' => $equipoId]);
         exit();
     }
-    if ($_POST['accion'] === 'asociarAEquipo') {
+    if ($_SERVER['REQUEST_URI'] === '/asociarAEquipo') {
         $id_equipo = $_POST['id_equipo'];
         $id_pokemones = $_POST['id_pokemones'];
         $orden = $_POST['orden'];
@@ -38,14 +61,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    if ($_GET['accion'] === 'listarEntrenadores') {
+    if ($_SERVER['REQUEST_URI'] === '/listarEntrenadores') {
         $entrenador = new Entrenador($pdo);
         $entrenadores = $entrenador->listarEntrenadores();
 
         echo json_encode($entrenadores);
         exit();
     }
-    if ($_GET['accion'] === 'detallarEntrenador') {
+    if ($_SERVER['REQUEST_URI'] === '/detallarEntrenador?id=' . $_GET['id']) {
         $idEntrenador = $_GET['id'];
 
         $entrenador = new Entrenador($pdo);
@@ -54,9 +77,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         echo json_encode($entrenadorDetallado);
         exit();
     }
-    if ($_GET['accion'] === 'listarEquipos') {
+    if ($_SERVER['REQUEST_URI'] === '/listarEquipo?id=' . $_GET['id']) {
+        $idEquipo = $_GET['id'];
+
         $equipo = new Equipo($pdo);
-        $equipos = $equipo->listarEquipos();
+        $equipos = $equipo->listarEquipo($idEquipo);
 
         echo json_encode($equipos);
         exit();

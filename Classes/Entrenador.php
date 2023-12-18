@@ -27,7 +27,6 @@ class Entrenador
 
         if (!$entrenador) {
             echo "Error no hay entrenador";
-            return null;
         }
 
         $stmtEquipos = $this->pdo->prepare("SELECT * FROM equipos WHERE id_entrenadores = :id");
